@@ -1,5 +1,6 @@
 const {MongoClient} = require('mongodb-legacy');
 const assert = require('assert').strict;
+const dboper = require('./operations');
 
 const url = "mongodb://localhost:27017/";
 const dbName = 'nucampsite';
@@ -16,26 +17,37 @@ MongoClient.connect(url, {}, (err, client)=> {
 
         console.log('Dropped Collection', result);
 
-        const collection = db.collection('campsites');
-
         const documentToInsert = {name: "Breadcrumb Trail Campground", description: "Test"};
 
-        collection.insertOne(documentToInsert, (err, result)=> {
-            assert.strictEqual(err, undefined);
-
+        dboper.insertDocument(db,documentToInsert, 'campsites', result=> {
             console.log("Insert Document: ", {
                 _id: result.insertedId,
                 ...documentToInsert
             });
 
-            collection.find().toArray((err, docs)=> {
-                assert.strictEqual(err, undefined);
+        dboper.findDocuments(db, 'campsites', docs => {
+            console.log("Found Documents:", docs);
 
-                console.log('Found Documents', docs);
+            dboper.updateDocument(db, {name: "Breadcrumb Trail Campground"}, 
+                {description: "Updated Test Description"}, 'campsites', result => {
+                    console.log("Updated document Count: ", result.modifiedCount);
 
-                client.close();
+                    dboper.findDocuments(db, 'campsites', docs=> {
+                        console.log("Found Documents:", docs);
+
+                dboper.removeDocument(db, {name: "Breadcrumb Trail Campground"}, 
+                    'campsites', result=> {
+                        console.log('Deleted Document Count:', result.deletedCount);
+
+                        client.close();
+                    }
+                )
+                    });
+                }
+            );
+        });
+
             })
         });
-    })
-});
+    });
 
